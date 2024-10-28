@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>CropperJS jQuery</title>
+
+    <!-- Simple CSS for Modal Display -->
+    <style>
+        #cropperModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        img {
+            display: block;
+            /* This rule is very important, please don't ignore this */
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Button and Preview -->
+<button id="uploadBtn">Upload Image</button>
+<input type="file" id="imageInput" accept="image/*" style="display: none;" />
+<input type="hidden" id="croppedImageData" />
+<div id="previewContainer" style="display: none;">
+    <h4>Preview:</h4>
+    <img id="previewImage" style="max-width: 100%;width: 300px;" />
+</div>
+
+<!-- Modal Structure -->
+<div id="cropperModal" style="display: none;">
+    <div style="padding: 20px;background: #fff;margin: auto;position: relative;width: 860px;">
+        <h3>Crop Your Image</h3>
+        <div>
+            <img id="modalImage" />
+        </div>
+        <div style="margin-top: 10px; text-align: right;">
+            <button id="revertBtn">Revert</button>
+            <button id="approveBtn">Approve</button>
+            <button class="setDragMode" data-drag-mode="move">Drag mode</button>
+            <button class="setDragMode" data-drag-mode="crop">Crop mode</button>
+        </div>
+    </div>
+</div>
+
+
+<script src="node_modules/jquery/dist/jquery.js"></script><!-- jQuery is required -->
+<script src="node_modules/cropperjs/dist/cropper.js"></script><!-- Cropper.js is required -->
+<link  href="node_modules/cropperjs/dist/cropper.css" rel="stylesheet">
+<script src="node_modules/jquery-cropper/dist/jquery-cropper.js"></script>
+
+<script>
+    $(document).ready(function () {
+        let cropper;
+        let originalImageURL;
+
+        // Open file dialog when clicking "Upload Image"
+        $('#uploadBtn').on('click', function () {
+            $('#imageInput').click();
+        });
+
+        // When a file is selected, open the modal and initialize CropperJS
+        $('#imageInput').on('change', function (event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    originalImageURL = e.target.result;
+                    $('#modalImage').attr('src', originalImageURL);
+                    $('#cropperModal').show();
+
+                    // Initialize or reset CropperJS
+                    if (cropper) {
+                        cropper.destroy();
+                    }
+                    cropper = new Cropper(document.getElementById('modalImage'), {
+                        aspectRatio: 5/4, // Adjust as needed
+                        viewMode: 1,
+                        movable: true,
+                        zoomable: true,
+                        scalable: true,
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Revert button to reset crop to original image
+        $('#revertBtn').on('click', function () {
+            if (cropper) {
+                cropper.destroy();
+                $('#modalImage').attr('src', originalImageURL);
+                cropper = new Cropper(document.getElementById('modalImage'), {
+                    aspectRatio: 5/4, // Keep the same aspect ratio
+                    viewMode: 1,
+                    movable: true,
+                    zoomable: true,
+                    scalable: true,
+                });
+            }
+        });
+
+        $('.setDragMode').click(function () {
+            if (cropper) {
+                let mode = $(this).data('drag-mode');
+                cropper.setDragMode(mode)
+            }
+        })
+
+        // Approve button to save the cropped image
+        $('#approveBtn').on('click', function () {
+            if (cropper) {
+                const canvas = cropper.getCroppedCanvas();
+                const croppedImageData = canvas.toDataURL('image/png'); // Base64 encoded string
+
+                // Store the base64 string in a hidden input
+                $('#croppedImageData').val(croppedImageData);
+
+                // Display the cropped image as a preview
+                $('#previewImage').attr('src', croppedImageData);
+                $('#previewContainer').show();
+
+                // Close the modal and reset the file input
+                closeModal();
+            }
+        });
+
+        // Function to close modal and reset input and cropper
+        function closeModal() {
+            $('#cropperModal').hide();
+            $('#imageInput').val(''); // Reset the file input
+
+            // Destroy cropper instance if it exists
+            if (cropper) {
+                cropper.destroy();
+            }
+        }
+
+        // Close modal on background click
+        $('#cropperModal').on('click', function (e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    });
+
+</script>
+</body>
+</html>
